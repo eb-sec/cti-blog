@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Building a Local CTI Pipeline: MISP, Python and Automated IOC Enrichment – INTEL//FEED</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@300;400;500&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:      #080b0e;
+  --bg2:     #0d1117;
+  --bg3:     #121820;
+  --border:  #1c2430;
+  --border2: #263040;
+  --text:    #b8c4d0;
+  --text2:   #5c6e82;
+  --text3:   #334455;
+  --accent:  #2563eb;
+  --accent2: #3b82f6;
+  --red:     #dc2626;
+  --green:   #059669;
+  --amber:   #d97706;
+  --purple:  #7c3aed;
+  --white:   #e8edf2;
+  --mono:    'IBM Plex Mono', monospace;
+  --display: 'Syne', sans-serif;
+  --serif:   'Lora', Georgia, serif;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--serif);
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+}
+
+h1, h2, h3, h4 { font-family: var(--display); color: var(--white); letter-spacing: -0.02em; line-height: 1.2; }
+a { color: inherit; text-decoration: none; }
+
+/* Header */
+header {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: rgba(8,11,14,0.9); backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+}
+.header-inner {
+  max-width: 1280px; margin: 0 auto; padding: 0 48px;
+  height: 60px; display: flex; align-items: center; justify-content: space-between;
+}
+.logo { font-family: var(--display); font-weight: 800; font-size: 17px; letter-spacing: -0.04em; color: var(--white); display: flex; align-items: center; gap: 6px; }
+.logo-sep { color: var(--accent); font-weight: 400; }
+.logo-badge { font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text3); border: 1px solid var(--border2); padding: 3px 8px; border-radius: 2px; margin-left: 6px; }
+nav { display: flex; align-items: center; gap: 28px; }
+nav a { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text2); transition: color 0.15s; }
+nav a:hover { color: var(--white); }
+
+/* Post header */
+.post-header { padding: 100px 48px 48px; max-width: 900px; margin: 0 auto; animation: fadeUp 0.5s ease both; }
+@keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+.back { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); display: flex; align-items: center; gap: 8px; margin-bottom: 36px; transition: color 0.15s; }
+.back:hover { color: var(--text2); }
+
+/* Intel header card */
+.intel-header { background: var(--bg2); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; margin-bottom: 48px; }
+.ih-top { padding: 24px 32px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+.ih-type { display: flex; align-items: center; gap: 10px; }
+.cti-tag { font-family: var(--mono); font-size: 9px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; border-radius: 2px; border: 1px solid; }
+.ct-method  { color: var(--accent2); border-color: var(--accent2); background: rgba(59,130,246,0.07); }
+.ct-platform { color: #94a3b8; border-color: #334155; background: rgba(148,163,184,0.06); }
+.tlp { font-family: var(--mono); font-size: 9px; font-weight: 500; letter-spacing: 0.1em; padding: 3px 8px; border-radius: 2px; border: 1px solid; }
+.tlp-clear { color: #94a3b8; border-color: #334155; background: rgba(148,163,184,0.06); }
+.ih-meta { display: flex; gap: 24px; }
+.ih-meta-item { display: flex; flex-direction: column; gap: 3px; }
+.ihm-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text3); }
+.ihm-value { font-family: var(--mono); font-size: 12px; color: var(--text2); }
+.ih-body { padding: 32px; }
+.post-title { font-size: clamp(26px, 3.5vw, 44px); font-weight: 800; margin-bottom: 18px; line-height: 1.1; }
+.post-subtitle { font-family: var(--serif); font-style: italic; font-size: 18px; color: var(--text2); line-height: 1.7; }
+
+/* Layout */
+.post-layout { max-width: 900px; margin: 0 auto; padding: 0 48px 80px; display: grid; grid-template-columns: 1fr 220px; gap: 56px; align-items: start; }
+
+/* Article */
+.article h2 { font-size: 20px; font-weight: 700; margin: 44px 0 14px; padding-top: 44px; border-top: 1px solid var(--border); }
+.article h2:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+.article h3 { font-family: var(--mono); font-size: 12px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text2); margin: 28px 0 10px; }
+.article p { font-size: 17px; line-height: 1.82; margin-bottom: 20px; color: var(--text); }
+.article ul, .article ol { margin: 0 0 20px 18px; }
+.article li { font-size: 17px; line-height: 1.75; margin-bottom: 8px; color: var(--text); }
+.article a { color: var(--accent2); text-decoration: underline; text-decoration-color: rgba(59,130,246,0.3); text-underline-offset: 3px; }
+.article strong { color: var(--white); font-weight: 600; }
+.article em { color: var(--text2); font-style: italic; }
+
+/* Code */
+.article pre { background: var(--bg2); border: 1px solid var(--border); border-radius: 3px; padding: 22px 24px; overflow-x: auto; margin: 24px 0; position: relative; font-family: var(--mono); font-size: 12.5px; line-height: 1.7; color: var(--text); }
+.code-tag { position: absolute; top: 0; right: 0; font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); padding: 6px 12px; border-left: 1px solid var(--border); border-bottom: 1px solid var(--border); border-radius: 0 3px 0 3px; }
+.article :not(pre) > code { font-family: var(--mono); font-size: 12.5px; background: var(--bg3); border: 1px solid var(--border); padding: 2px 6px; border-radius: 2px; color: var(--accent2); }
+
+/* Callouts */
+.callout { border-radius: 3px; padding: 18px 22px; margin: 24px 0; display: flex; gap: 14px; }
+.co-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+.co-body { font-family: var(--serif); font-size: 14.5px; line-height: 1.7; }
+.co-title { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; }
+.co-note { background: rgba(59,130,246,0.07); border: 1px solid rgba(59,130,246,0.2); }
+.co-note .co-title { color: var(--accent2); }
+.co-note .co-body { color: #93c5fd; }
+.co-warn { background: rgba(217,119,6,0.07); border: 1px solid rgba(217,119,6,0.2); }
+.co-warn .co-title { color: var(--amber); }
+.co-warn .co-body { color: #fcd34d; }
+.co-honest { background: rgba(124,58,237,0.07); border: 1px solid rgba(124,58,237,0.2); }
+.co-honest .co-title { color: var(--purple); }
+.co-honest .co-body { color: #c4b5fd; }
+
+/* Flow diagram */
+.flow {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 28px;
+  margin: 24px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+}
+
+.flow-title {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  width: 100%;
+}
+
+.flow-step {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+}
+
+.flow-box {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  padding: 10px 18px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--white);
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flow-box-sub {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+}
+
+.flow-box.highlight {
+  border-color: var(--accent2);
+  background: rgba(59,130,246,0.07);
+}
+
+.flow-arrow {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 4px 0 4px 20px;
+  gap: 0;
+}
+
+.flow-line {
+  width: 1px;
+  height: 20px;
+  background: var(--border2);
+  margin-left: 16px;
+}
+
+.flow-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  padding-left: 36px;
+}
+
+/* Component table */
+.comp-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 24px 0;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.comp-table th { background: var(--bg2); padding: 10px 14px; text-align: left; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text3); border: 1px solid var(--border); }
+.comp-table td { padding: 10px 14px; border: 1px solid var(--border); color: var(--text); vertical-align: top; line-height: 1.55; }
+.comp-table td:first-child { color: var(--accent2); white-space: nowrap; }
+.comp-table tr:nth-child(even) td { background: var(--bg2); }
+
+/* Sidebar */
+.sidebar { position: sticky; top: 80px; display: flex; flex-direction: column; gap: 20px; }
+.sidebar-block { background: var(--bg2); border: 1px solid var(--border); border-radius: 3px; overflow: hidden; }
+.sb-title { padding: 10px 16px; border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text3); }
+.toc-links { padding: 8px; display: flex; flex-direction: column; gap: 2px; }
+.toc-links a { font-family: var(--mono); font-size: 11px; color: var(--text3); padding: 6px 10px; border-radius: 2px; display: block; border-left: 2px solid transparent; line-height: 1.4; transition: color 0.15s, border-color 0.15s; }
+.toc-links a:hover  { color: var(--text); border-left-color: var(--border2); }
+.toc-links a.active { color: var(--accent2); border-left-color: var(--accent2); }
+
+.stack-list { padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+.stack-item { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; background: var(--bg3); border: 1px solid var(--border); border-radius: 2px; }
+.si-name { font-family: var(--mono); font-size: 11px; color: var(--white); }
+.si-role { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+
+.status-list { padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+.status-item { display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 11px; color: var(--text2); padding: 6px 8px; }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.s-planned  { background: var(--border2); }
+.s-building { background: var(--amber); }
+.s-done     { background: var(--green); }
+
+/* Footer */
+footer { border-top: 1px solid var(--border); padding: 32px 48px; }
+.footer-inner { max-width: 1280px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+.footer-logo { font-family: var(--display); font-weight: 800; font-size: 15px; letter-spacing: -0.03em; color: var(--text3); }
+.footer-note { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: 0.06em; }
+
+/* Post footer */
+.post-footer { max-width: 900px; margin: 0 auto; padding: 0 48px 80px; }
+.pf-rule { height: 1px; background: var(--border); margin-bottom: 36px; }
+.related-label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text3); margin-bottom: 20px; }
+.related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 3px; overflow: hidden; }
+.rel-card { background: var(--bg2); padding: 24px; transition: background 0.15s; }
+.rel-card:hover { background: var(--bg3); }
+.rel-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.rel-date { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+.rel-title { font-family: var(--display); font-size: 15px; font-weight: 600; color: var(--white); line-height: 1.3; margin-bottom: 8px; }
+.rel-desc { font-family: var(--serif); font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+@media (max-width: 860px) {
+  .post-layout { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .post-header, .post-layout, .post-footer { padding-left: 20px; padding-right: 20px; }
+  .related-grid { grid-template-columns: 1fr; }
+  .header-inner, footer { padding-left: 20px; padding-right: 20px; }
+  .logo-badge { display: none; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a href="index.html" class="logo">
+      INTEL<span class="logo-sep">//</span>FEED
+      <span class="logo-badge">CTI</span>
+    </a>
+    <nav>
+      <a href="index.html">Research</a>
+      <a href="actors.html">Threat Actors</a>
+      <a href="tools.html">Tools & Methods</a>
+      <a href="about.html">About</a>
+    </nav>
+  </div>
+</header>
+
+<div class="post-header">
+  <a href="index.html" class="back">← Back to research</a>
+
+  <div class="intel-header">
+    <div class="ih-top">
+      <div class="ih-type">
+        <span class="cti-tag ct-method">Methodology</span>
+        <span class="cti-tag ct-platform">Tools & Platforms</span>
+        <span class="tlp tlp-clear">TLP:CLEAR</span>
+      </div>
+      <div class="ih-meta">
+        <div class="ih-meta-item">
+          <span class="ihm-label">Published</span>
+          <span class="ihm-value">May 25, 2026</span>
+        </div>
+        <div class="ih-meta-item">
+          <span class="ihm-label">Read time</span>
+          <span class="ihm-value">14 min</span>
+        </div>
+        <div class="ih-meta-item">
+          <span class="ihm-label">Status</span>
+          <span class="ihm-value" style="color:var(--amber)">In Development</span>
+        </div>
+        <div class="ih-meta-item">
+          <span class="ihm-label">GitHub</span>
+          <span class="ihm-value" style="color:var(--accent2)">misp-cti-bridge</span>
+        </div>
+      </div>
+    </div>
+    <div class="ih-body">
+      <h1 class="post-title">Building a Local CTI Pipeline: Why I Started and What I Am Building</h1>
+      <p class="post-subtitle">
+        A design and architecture post on MISP-CTI-Bridge — an open-source pipeline
+        that connects process anomaly detection, external threat feeds and structured
+        MISP event creation without cloud dependencies or commercial licensing.
+      </p>
+    </div>
+  </div>
+</div>
+
+<div class="post-layout">
+  <article class="article">
+
+    <h2>The Problem I Kept Running Into</h2>
+
+    <p>
+      The more I read about threat intelligence, the more I noticed the same pattern:
+      most of what gets written assumes you either work at a company with a six-figure
+      threat intel budget, or you are content staying at the level of consuming other
+      people's reports without producing any analysis of your own.
+    </p>
+
+    <p>
+      Neither suited me. I wanted to actually practice the discipline — collect indicators,
+      correlate them, understand where they come from, map them to adversary behavior and
+      store them in a way that builds up over time. Not just read about it.
+    </p>
+
+    <p>
+      The practical problem was fragmentation. MalwareBazaar has samples. VirusTotal has
+      graph relationships. Shodan has infrastructure data. MITRE ATT&CK has the behavioral
+      framework. MISP can tie it all together — but connecting these sources manually,
+      every time, for every indicator, does not scale even in a lab environment. After
+      the third time I copy-pasted a SHA256 hash across four browser tabs I decided to
+      automate it.
+    </p>
+
+    <div class="callout co-honest">
+      <span class="co-icon">◈</span>
+      <div class="co-body">
+        <div class="co-title">Honest note</div>
+        This project is currently in development. What follows is a description of the
+        architecture and reasoning behind design decisions — not a finished product review.
+        The code is on GitHub and will be updated as each module is completed.
+      </div>
+    </div>
+
+    <h2>What the Pipeline Does</h2>
+
+    <p>
+      MISP-CTI-Bridge is a local, open-source pipeline with five stages. Each stage is
+      a separate Python module so any part can be replaced or extended independently.
+      The entire stack runs on a single machine with Docker — no cloud accounts, no API
+      keys that cost money, no vendor lock-in.
+    </p>
+
+    <div class="flow">
+      <div class="flow-title">Pipeline Architecture</div>
+
+      <div class="flow-step">
+        <div class="flow-box">
+          <span>1. scanner.py — Process Anomaly Detection</span>
+          <span class="flow-box-sub">psutil · Windows</span>
+        </div>
+      </div>
+      <div class="flow-line" style="height:16px;margin-left:16px;background:var(--border2)"></div>
+      <div class="flow-label" style="margin-bottom:0;padding-left:0;font-family:var(--mono);font-size:10px;color:var(--text3);padding-left:20px">SHA256 hash of suspicious executable</div>
+      <div class="flow-line" style="height:16px;margin-left:16px;background:var(--border2)"></div>
+
+      <div class="flow-step">
+        <div class="flow-box highlight">
+          <span>2. misp_bridge.py — TI Lookup + MISP Event Creation</span>
+          <span class="flow-box-sub">PyMISP · MalwareBazaar · VT</span>
+        </div>
+      </div>
+      <div class="flow-line" style="height:16px;margin-left:16px;background:var(--border2)"></div>
+      <div class="flow-label" style="margin-bottom:0;padding-left:0;font-family:var(--mono);font-size:10px;color:var(--text3);padding-left:20px">Structured MISP event with ATT&CK tags</div>
+      <div class="flow-line" style="height:16px;margin-left:16px;background:var(--border2)"></div>
+
+      <div class="flow-step">
+        <div class="flow-box">
+          <span>3. feed_sync.py — Feed Synchronisation</span>
+          <span class="flow-box-sub">MISP Feeds · Abuse.ch · CIRCL</span>
+        </div>
+      </div>
+      <div class="flow-line" style="height:16px;margin-left:16px;background:var(--border2)"></div>
+      <div class="flow-label" style="margin-bottom:0;padding-left:0;font-family:var(--mono);font-size:10px;color:var(--text3);padding-left:20px">Updated IOC knowledge base</div>
+      <div class="flow-line" style="height:16px;margin-left:16px;background:var(--border2)"></div>
+
+      <div class="flow-step">
+        <div class="flow-box">
+          <span>4. reporter.py — HTML + Markdown Output</span>
+          <span class="flow-box-sub">Per-scan reports · Threat summaries</span>
+        </div>
+      </div>
+    </div>
+
+    <h2>Design Decisions Worth Explaining</h2>
+
+    <h3>Why MISP and not a spreadsheet</h3>
+
+    <p>
+      The honest answer is: a spreadsheet would work for ten indicators. It stops working
+      when you want to ask questions like "have I seen this hosting provider before" or
+      "which of my stored indicators share a registrant with this new domain." MISP handles
+      relationships between indicators natively. It also speaks STIX and TAXII, which means
+      anything stored locally can eventually be shared with external platforms without
+      reformatting.
+    </p>
+
+    <p>
+      The less obvious reason is that working with MISP forces you to think in structured
+      intelligence terms. An event needs a threat level. Attributes need a type. Tags
+      connect to frameworks. That friction is productive — it prevents the lazy habit of
+      dumping raw IOCs somewhere and calling it intelligence.
+    </p>
+
+    <h3>Why local and not a managed service</h3>
+
+    <p>
+      Several managed MISP instances exist, including free community ones. The reason I
+      run it locally comes down to two things. First, I wanted to understand how MISP
+      actually works — running it in Docker and hitting problems with MySQL initialization
+      timing taught me more about the platform than reading the documentation ever would.
+      Second, a local instance means I control what goes in and what leaves. For a learning
+      environment that matters less, but building the habit of thinking about data handling
+      from the start seems worth it.
+    </p>
+
+    <h3>Why Python and not an existing automation tool</h3>
+
+    <p>
+      Tools like n8n or Shuffle could wire these services together without writing code.
+      I chose Python for a simple reason: the pipeline is also a portfolio piece. Code
+      that explains its own decisions through comments and structure communicates more
+      about how you think than a no-code workflow screenshot.
+    </p>
+
+    <div class="callout co-note">
+      <span class="co-icon">→</span>
+      <div class="co-body">
+        <div class="co-title">On the code style</div>
+        The project deliberately avoids over-engineering. No abstract base classes,
+        no dependency injection frameworks, no enterprise patterns. Flat functions where
+        they work, classes only where state is genuinely needed. Comments explain why
+        decisions were made, not what the code does — the code does that itself.
+      </div>
+    </div>
+
+    <h2>The Intelligence Lifecycle in Practice</h2>
+
+    <p>
+      One of the things that attracted me to CTI as a discipline is that it has a real
+      methodology — the intelligence lifecycle — that is easy to describe but difficult
+      to actually follow through on. Most people stop at collection. The pipeline is
+      partly an attempt to force myself through all six phases by making the later ones
+      easier.
+    </p>
+
+    <table class="comp-table">
+      <thead>
+        <tr>
+          <th>Phase</th>
+          <th>What it means</th>
+          <th>How the pipeline addresses it</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Direction</td>
+          <td>What are you trying to find out?</td>
+          <td>Config file defines minimum severity thresholds and which processes are baseline-normal</td>
+        </tr>
+        <tr>
+          <td>Collection</td>
+          <td>Gather raw data from sources</td>
+          <td>scanner.py + MalwareBazaar + VirusTotal + MISP feeds</td>
+        </tr>
+        <tr>
+          <td>Processing</td>
+          <td>Normalize and structure data</td>
+          <td>misp_bridge.py normalizes findings into MISP events with typed attributes</td>
+        </tr>
+        <tr>
+          <td>Analysis</td>
+          <td>Turn data into intelligence</td>
+          <td>ATT&CK mapping, deduplication, feed correlation — this is the weakest phase currently</td>
+        </tr>
+        <tr>
+          <td>Dissemination</td>
+          <td>Deliver findings to the right audience</td>
+          <td>reporter.py generates HTML and Markdown with TLP labels</td>
+        </tr>
+        <tr>
+          <td>Feedback</td>
+          <td>Refine requirements and iterate</td>
+          <td>Not yet implemented — planned as a manual review step</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>
+      The analysis phase is intentionally listed as the weakest. Automated ATT&CK tagging
+      based on alert type is a heuristic, not analysis. Real analysis requires a human
+      asking whether the observed behavior actually matches the technique, whether there
+      are alternative explanations, and what confidence level the evidence supports.
+      The pipeline gets you to the point where that question is easier to ask — it does
+      not answer it for you.
+    </p>
+
+    <h2>What I Have Learned So Far</h2>
+
+    <p>
+      Building this has been a better education in CTI tooling than reading about it.
+      A few things stand out.
+    </p>
+
+    <p>
+      <strong>MalwareBazaar is underused.</strong> The free API returns rich context — malware
+      family, first seen date, tags, file type — with no authentication required. For a
+      learning environment it is essentially a free tier of commercial threat intel.
+    </p>
+
+    <p>
+      <strong>MISP startup behavior is surprising.</strong> The Docker container initializes
+      MySQL asynchronously, which means the application layer can be ready before the
+      database is. The first time this caused a silent failure that took twenty minutes to
+      diagnose. The fix — a retry loop with exponential backoff on the initial connection —
+      is now in misp_bridge.py and is something I would not have thought to include if I
+      had not hit the problem myself.
+    </p>
+
+    <p>
+      <strong>The VirusTotal rate limit is a design constraint, not an annoyance.</strong>
+      Four requests per minute on a free key forces you to be selective about what you
+      look up. That selectivity is actually good practice — in a real environment you want
+      to query external services only for indicators that have already cleared an internal
+      triage step.
+    </p>
+
+    <div class="callout co-warn">
+      <span class="co-icon">⚠</span>
+      <div class="co-body">
+        <div class="co-title">Current Limitation</div>
+        The scanner module is Windows-only. The path validation checks reference
+        System32 and Windows Defender paths which do not translate to Linux.
+        A cross-platform version is on the roadmap but is not the current priority.
+      </div>
+    </div>
+
+    <h2>What Comes Next</h2>
+
+    <p>
+      The immediate next step is finishing the feed_sync.py module and running the
+      pipeline against a fresh MalwareBazaar sample to validate the full MISP event
+      creation flow. That will produce the first real data to work with, and the
+      first real post that is analysis rather than architecture description.
+    </p>
+
+    <p>
+      After that the most useful addition would be a Sigma rule generator — taking a
+      MISP event and outputting a detection rule in Sigma format that can be used in
+      any SIEM. That closes the loop from indicator discovery to deployed detection,
+      which is ultimately what threat intelligence is for.
+    </p>
+
+    <p>
+      The code is on GitHub. If you are building something similar or have thoughts on
+      the architecture, I am genuinely interested — the feedback loop is the phase I
+      have the least infrastructure for right now.
+    </p>
+
+  </article>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-block">
+      <div class="sb-title">In this post</div>
+      <div class="toc-links">
+        <a href="#" class="active">The Problem</a>
+        <a href="#">What it Does</a>
+        <a href="#">Design Decisions</a>
+        <a href="#">Intelligence Lifecycle</a>
+        <a href="#">What I Learned</a>
+        <a href="#">What Comes Next</a>
+      </div>
+    </div>
+
+    <div class="sidebar-block">
+      <div class="sb-title">Tech Stack</div>
+      <div class="stack-list">
+        <div class="stack-item">
+          <span class="si-name">MISP</span>
+          <span class="si-role">Event storage · feed management</span>
+        </div>
+        <div class="stack-item">
+          <span class="si-name">PyMISP</span>
+          <span class="si-role">REST API client</span>
+        </div>
+        <div class="stack-item">
+          <span class="si-name">MalwareBazaar</span>
+          <span class="si-role">Hash lookup · free</span>
+        </div>
+        <div class="stack-item">
+          <span class="si-name">VirusTotal</span>
+          <span class="si-role">Enrichment · free key</span>
+        </div>
+        <div class="stack-item">
+          <span class="si-name">Docker</span>
+          <span class="si-role">Local MISP deployment</span>
+        </div>
+        <div class="stack-item">
+          <span class="si-name">psutil</span>
+          <span class="si-role">Process enumeration</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-block">
+      <div class="sb-title">Build Status</div>
+      <div class="status-list">
+        <div class="status-item">
+          <div class="status-dot s-done"></div>
+          scanner.py
+        </div>
+        <div class="status-item">
+          <div class="status-dot s-building"></div>
+          misp_bridge.py
+        </div>
+        <div class="status-item">
+          <div class="status-dot s-planned"></div>
+          feed_sync.py
+        </div>
+        <div class="status-item">
+          <div class="status-dot s-planned"></div>
+          reporter.py
+        </div>
+        <div class="status-item">
+          <div class="status-dot s-planned"></div>
+          Sigma generator
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<div class="post-footer">
+  <div class="pf-rule"></div>
+  <div class="related-label">Related Posts</div>
+  <div class="related-grid">
+    <a href="post.html" class="rel-card">
+      <div class="rel-meta">
+        <span class="cti-tag ct-method" style="font-family:var(--mono);font-size:9px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;padding:3px 8px;border-radius:2px;border:1px solid;color:var(--accent2);border-color:var(--accent2);background:rgba(59,130,246,0.07)">OSINT</span>
+        <span class="rel-date">Apr 10, 2026</span>
+      </div>
+      <div class="rel-title">Pivoting Through Certificate Transparency Logs to Map Adversary Infrastructure</div>
+      <div class="rel-desc">A hands-on walkthrough of the crt.sh and Shodan methodology for infrastructure clustering.</div>
+    </a>
+    <a href="post.html" class="rel-card">
+      <div class="rel-meta">
+        <span class="cti-tag ct-method" style="font-family:var(--mono);font-size:9px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;padding:3px 8px;border-radius:2px;border:1px solid;color:var(--accent2);border-color:var(--accent2);background:rgba(59,130,246,0.07)">Methodology</span>
+        <span class="rel-date">Feb 19, 2026</span>
+      </div>
+      <div class="rel-title">Writing Intelligence Reports That People Actually Read</div>
+      <div class="rel-desc">Structure, confidence levels and TLP handling for CTI reports aimed at mixed audiences.</div>
+    </a>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <span class="footer-logo">INTEL//FEED</span>
+    <span class="footer-note">Open-source CTI research · All findings independently verifiable</span>
+  </div>
+</footer>
+
+</body>
+</html>
