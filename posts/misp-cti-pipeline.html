@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Building a Local CTI Pipeline — Elias Bach</title>
+<title>Building a Local CTI Pipeline: Elias Bach</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -131,7 +131,7 @@ h1.post-title {
   border-radius: 2px;
 }
 
-/* Callouts — plain bordered blocks, status word does the work, no icon soup */
+/* Callouts: plain bordered blocks, status word does the work, no icon soup */
 .note {
   border-left: 3px solid var(--ink3);
   padding: 12px 18px;
@@ -151,7 +151,7 @@ h1.post-title {
 .note.warn { border-left-color: var(--warn); }
 .note.warn .note-label { color: var(--warn); }
 
-/* Pipeline steps — plain numbered list, not glowing diagram boxes */
+/* Pipeline steps: plain numbered list, not glowing diagram boxes */
 .pipeline {
   margin: 24px 0 28px;
   border-top: 1px solid var(--line);
@@ -187,7 +187,7 @@ h1.post-title {
 }
 .pl-out::before { content: '→ '; color: var(--ink3); }
 
-/* Table — plain, no rounded corners, hairlines only */
+/* Table: plain, no rounded corners, hairlines only */
 table.lifecycle {
   width: 100%;
   border-collapse: collapse;
@@ -271,7 +271,7 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     </p>
 
     <p>
-      Neither suited me. I wanted to actually practice the discipline — collect indicators,
+      Neither suited me. I wanted to actually practice the discipline: collect indicators,
       correlate them, understand where they come from, map them to adversary behavior and
       store them in a way that builds up over time. Not just read about it.
     </p>
@@ -297,32 +297,32 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     <p>
       MISP-CTI-Bridge is a local, open-source pipeline with four stages. Each stage is
       a separate Python module so any part can be replaced or extended independently.
-      The entire stack runs on a single machine with Docker — no cloud accounts, no API
+      The entire stack runs on a single machine with Docker, no cloud accounts, no API
       keys that cost money, no vendor lock-in.
     </p>
 
     <div class="pipeline">
       <div class="pl-step">
         <div class="pl-num">01</div>
-        <div class="pl-name">scanner.py — process anomaly detection</div>
+        <div class="pl-name">scanner.py: process anomaly detection</div>
         <div class="pl-detail">psutil · Windows</div>
         <div class="pl-out">SHA256 hash of suspicious executable</div>
       </div>
       <div class="pl-step">
         <div class="pl-num">02</div>
-        <div class="pl-name">misp_bridge.py — TI lookup + MISP event creation</div>
+        <div class="pl-name">misp_bridge.py: TI lookup + MISP event creation</div>
         <div class="pl-detail">PyMISP · MalwareBazaar · VirusTotal</div>
         <div class="pl-out">Structured MISP event with ATT&amp;CK tags</div>
       </div>
       <div class="pl-step">
         <div class="pl-num">03</div>
-        <div class="pl-name">feed_sync.py — feed synchronisation</div>
+        <div class="pl-name">feed_sync.py: feed synchronisation</div>
         <div class="pl-detail">MISP feeds · abuse.ch · CIRCL</div>
         <div class="pl-out">Updated IOC knowledge base</div>
       </div>
       <div class="pl-step">
         <div class="pl-num">04</div>
-        <div class="pl-name">reporter.py — HTML + Markdown output</div>
+        <div class="pl-name">reporter.py: HTML + Markdown output</div>
         <div class="pl-detail">Per-scan reports · threat summaries</div>
       </div>
     </div>
@@ -343,7 +343,7 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     <p>
       The less obvious reason is that working with MISP forces you to think in structured
       intelligence terms. An event needs a threat level. Attributes need a type. Tags
-      connect to frameworks. That friction is productive, it prevents the lazy habit of
+      connect to frameworks. That friction is productive. It prevents the lazy habit of
       dumping raw IOCs somewhere and calling it intelligence.
     </p>
 
@@ -352,7 +352,7 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     <p>
       Several managed MISP instances exist, including free community ones. The reason I
       run it locally comes down to two things. First, I wanted to understand how MISP
-      actually works — running it in Docker and hitting problems with MySQL initialization
+      actually works. Running it in Docker and hitting problems with MySQL initialization
       timing taught me more about the platform than reading the documentation ever would.
       Second, a local instance means I control what goes in and what leaves. For a learning
       environment that matters less, but building the habit of thinking about data handling
@@ -373,7 +373,7 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       The project deliberately avoids over-engineering. No abstract base classes,
       no dependency injection frameworks, no enterprise patterns. Flat functions where
       they work, classes only where state is genuinely needed. Comments explain why
-      decisions were made, not what the code does — the code does that itself.
+      decisions were made, not what the code does. The code does that itself.
     </div>
 
     <h2 id="intel-lifecycle">The intelligence lifecycle in practice</h2>
@@ -413,7 +413,7 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
         <tr>
           <td>Analysis</td>
           <td>Turn data into intelligence</td>
-          <td>ATT&amp;CK mapping, dedup, feed correlation — weakest phase currently</td>
+          <td>ATT&amp;CK mapping, dedup, feed correlation. Weakest phase currently</td>
         </tr>
         <tr>
           <td>Dissemination</td>
@@ -433,7 +433,7 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       based on alert type is a heuristic, not analysis. Real analysis requires a human
       asking whether the observed behavior actually matches the technique, whether there
       are alternative explanations, and what confidence level the evidence supports.
-      The pipeline gets you to the point where that question is easier to ask, it does
+      The pipeline gets you to the point where that question is easier to ask. It does
       not answer it for you.
     </p>
 
@@ -492,7 +492,7 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
     <p>
       The code is on GitHub. If you are building something similar or have thoughts on
-      the architecture, I am genuinely interested, the feedback loop is the phase I
+      the architecture, I am genuinely interested. The feedback loop is the phase I
       have the least infrastructure for right now.
     </p>
 
@@ -500,8 +500,8 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
   <div class="post-footer">
     This is the first write-up from this project. More will follow as
-    <code>feed_sync.py</code> and the Sigma rule generator come together —
-    back to the <a href="../index.html">notebook</a> to follow along.
+    <code>feed_sync.py</code> and the Sigma rule generator come together.
+    Back to the <a href="../index.html">notebook</a> to follow along.
   </div>
 
 </div>
